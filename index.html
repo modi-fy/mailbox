@@ -9,6 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <!-- html2canvas for image export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -18,11 +20,14 @@
             <p class="subtitle">누가 보냈는지는 모르지만, 누군가 나를 응원하고 있어요</p>
         </header>
 
-        <!-- 전체 공개 칭찬판 (Live Praise Board) -->
-        <div class="live-praise-board" id="livePraiseBoard">
-            <div class="praise-content">
-                <span class="praise-icon">✨</span>
-                <span class="praise-text" id="praiseText">첫 번째 칭찬을 보내보세요!</span>
+        <!-- 날아다니는 편지들 (Flying Letters) -->
+        <div class="flying-letters-container" id="flyingLettersContainer">
+            <div class="flying-letters-bg"></div>
+            <div class="flying-letters-content" id="flyingLettersContent">
+                <!-- JavaScript에서 동적으로 편지 추가 -->
+            </div>
+            <div class="flying-letters-overlay">
+                <p class="flying-hint">✨ 따뜻한 칭찬들이 날아다니고 있어요</p>
             </div>
         </div>
 
@@ -33,9 +38,11 @@
                 <span>내 우편함</span>
                 <span id="myMessageCount" class="message-count">0</span>
             </button>
-            <select id="currentUser" class="user-select">
-                <!-- JavaScript에서 동적으로 추가 -->
-            </select>
+            <button id="currentUserBtn" class="current-user-btn">
+                <span id="currentUserAvatar" class="current-user-avatar"></span>
+                <span id="currentUserName" class="current-user-name"></span>
+                <span class="change-user-hint">변경</span>
+            </button>
         </div>
 
         <!-- 우편함 리스트 -->
@@ -161,13 +168,34 @@
 
     <!-- 메시지 상세 모달 -->
     <div id="messageDetailModal" class="modal">
-        <div class="modal-content modal-small">
+        <div class="modal-content modal-small modal-detail-wrapper">
             <button class="modal-close" id="closeDetailModal">&times;</button>
-            <div id="messageDetail" class="message-detail">
+            <div id="messageDetailCard" class="message-detail-card">
+                <div id="messageDetail" class="message-detail">
+                    <!-- JavaScript에서 동적으로 추가 -->
+                </div>
+            </div>
+            <button id="saveImageBtn" class="save-image-btn">
+                <span class="save-icon">📥</span>
+                이미지로 저장하기
+            </button>
+        </div>
+    </div>
+
+    <!-- 환영 모달 (본인 선택) -->
+    <div id="welcomeModal" class="modal">
+        <div class="modal-content modal-welcome">
+            <h2 class="welcome-title">👋 안녕하세요!</h2>
+            <p class="welcome-subtitle">익명 칭찬 우체통에 오신 것을 환영해요<br>먼저 본인을 선택해주세요</p>
+
+            <div id="welcomeGrid" class="welcome-grid">
                 <!-- JavaScript에서 동적으로 추가 -->
             </div>
         </div>
     </div>
+
+    <!-- 색종이 효과 Canvas -->
+    <canvas id="confettiCanvas" class="confetti-canvas"></canvas>
 
     <!-- 토스트 메시지 -->
     <div id="toast" class="toast"></div>

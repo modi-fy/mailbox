@@ -39,27 +39,29 @@ const FONTS = {
     elegant: 'font-elegant'
 };
 
-// 기본 칭찬 메시지 (Live Board용)
-const DEFAULT_PRAISES = [
-    '첫 번째 칭찬을 보내보세요!',
-    '따뜻한 한마디가 누군가에게 힘이 됩니다',
-    '오늘도 서로에게 응원을 보내볼까요?'
+// 색종이 색상
+const CONFETTI_COLORS = [
+    '#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3',
+    '#54a0ff', '#5f27cd', '#00d2d3', '#ff9f43',
+    '#10ac84', '#ee5a24', '#c8d6e5', '#ffeaa7'
 ];
 
 // 상태 관리
-let currentUserId = MEMBERS[0].id;
+let currentUserId = localStorage.getItem('currentUserId') || null;
 let selectedRecipientId = null;
 let selectedSticker = 'star';
 let selectedPaper = 'flower';
 let selectedFont = 'default';
-let praiseRotationInterval = null;
-let currentPraiseIndex = 0;
 
 // DOM 요소
 const mailboxGrid = document.getElementById('mailboxGrid');
-const currentUserSelect = document.getElementById('currentUser');
 const myMailboxBtn = document.getElementById('myMailboxBtn');
 const myMessageCount = document.getElementById('myMessageCount');
+const currentUserBtn = document.getElementById('currentUserBtn');
+const currentUserAvatar = document.getElementById('currentUserAvatar');
+const currentUserName = document.getElementById('currentUserName');
+const welcomeModal = document.getElementById('welcomeModal');
+const welcomeGrid = document.getElementById('welcomeGrid');
 
 const writeModal = document.getElementById('writeModal');
 const closeWriteModal = document.getElementById('closeWriteModal');
@@ -83,14 +85,216 @@ const emptyInbox = document.getElementById('emptyInbox');
 const messageDetailModal = document.getElementById('messageDetailModal');
 const closeDetailModal = document.getElementById('closeDetailModal');
 const messageDetail = document.getElementById('messageDetail');
+const messageDetailCard = document.getElementById('messageDetailCard');
+const saveImageBtn = document.getElementById('saveImageBtn');
 
-const praiseText = document.getElementById('praiseText');
+const confettiCanvas = document.getElementById('confettiCanvas');
+const confettiCtx = confettiCanvas.getContext('2d');
+
+const flyingLettersContent = document.getElementById('flyingLettersContent');
 const toast = document.getElementById('toast');
 
 // LocalStorage 키
 const STORAGE_KEY = 'anonymous_mailbox_messages';
 
+// ============================================
+// 색종이 효과 (Confetti)
+// ============================================
+
+class Confetti {
+    constructor() {
+        this.particles = [];
+        this.animationId = null;
+        this.isRunning = false;
+    }
+
+    resize() {
+        confettiCanvas.width = window.innerWidth;
+        confettiCanvas.height = window.innerHeight;
+    }
+
+    createParticle(x, y) {
+        return {
+            x: x || Math.random() * confettiCanvas.width,
+            y: y || -20,
+            size: Math.random() * 10 + 5,
+            color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+            speedX: (Math.random() - 0.5) * 8,
+            speedY: Math.random() * 3 + 2,
+            rotation: Math.random() * 360,
+            rotationSpeed: (Math.random() - 0.5) * 10,
+            shape: Math.random() > 0.5 ? 'rect' : 'circle',
+            opacity: 1
+        };
+    }
+
+    burst(count = 100) {
+        this.resize();
+        this.isRunning = true;
+
+        const centerX = confettiCanvas.width / 2;
+        const centerY = confettiCanvas.height / 3;
+
+        for (let i = 0; i < count; i++) {
+            const particle = this.createParticle(centerX, centerY);
+            particle.speedX = (Math.random() - 0.5) * 15;
+            particle.speedY = Math.random() * -10 - 5;
+            this.particles.push(particle);
+        }
+
+        setTimeout(() => {
+            for (let i = 0; i < count / 2; i++) {
+                this.particles.push(this.createParticle());
+            }
+        }, 300);
+
+        this.animate();
+    }
+
+    animate() {
+        if (!this.isRunning) return;
+
+        confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+
+        this.particles.forEach((p, index) => {
+            p.x += p.speedX;
+            p.y += p.speedY;
+            p.speedY += 0.15;
+            p.speedX *= 0.99;
+            p.rotation += p.rotationSpeed;
+            p.opacity -= 0.005;
+
+            confettiCtx.save();
+            confettiCtx.translate(p.x, p.y);
+            confettiCtx.rotate((p.rotation * Math.PI) / 180);
+            confettiCtx.globalAlpha = Math.max(0, p.opacity);
+            confettiCtx.fillStyle = p.color;
+
+            if (p.shape === 'rect') {
+                confettiCtx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+            } else {
+                confettiCtx.beginPath();
+                confettiCtx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+                confettiCtx.fill();
+            }
+
+            confettiCtx.restore();
+
+            if (p.y > confettiCanvas.height + 50 || p.opacity <= 0) {
+                this.particles.splice(index, 1);
+            }
+        });
+
+        if (this.particles.length > 0) {
+            this.animationId = requestAnimationFrame(() => this.animate());
+        } else {
+            this.stop();
+        }
+    }
+
+    stop() {
+        this.isRunning = false;
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+        }
+        confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        this.particles = [];
+    }
+}
+
+const confetti = new Confetti();
+window.addEventListener('resize', () => confetti.resize());
+
+// ============================================
+// 날아다니는 편지 (Flying Letters)
+// ============================================
+
+function renderFlyingLetters() {
+    const messages = getMessages();
+    flyingLettersContent.innerHTML = '';
+
+    if (messages.length === 0) {
+        flyingLettersContent.innerHTML = `
+            <div class="flying-letters-empty">
+                <div class="empty-envelope">💌</div>
+                <p>아직 편지가 없어요<br>첫 번째 칭찬을 보내보세요!</p>
+            </div>
+        `;
+        return;
+    }
+
+    // 최대 8개의 편지만 표시 (성능을 위해)
+    const shuffled = [...messages].sort(() => Math.random() - 0.5);
+    const displayMessages = shuffled.slice(0, Math.min(8, messages.length));
+
+    const animationPaths = ['animate-path-1', 'animate-path-2', 'animate-path-3', 'animate-path-4', 'animate-path-5'];
+
+    displayMessages.forEach((msg, index) => {
+        const recipient = MEMBERS.find(m => m.id === msg.recipientId);
+        const recipientName = recipient ? recipient.name : '익명';
+        const preview = msg.content.length > 25 ? msg.content.slice(0, 25) + '...' : msg.content;
+        const sticker = STICKERS[msg.sticker] || '⭐';
+
+        // 랜덤 애니메이션 경로 선택
+        const animClass = animationPaths[index % animationPaths.length];
+        // 랜덤 딜레이 추가
+        const delay = (index * 1.5) + Math.random() * 2;
+        // z-index 설정 (각 편지가 고유한 층위를 가짐 - 나중 편지가 위로)
+        const zIndex = 10 + index;
+
+        const letter = document.createElement('div');
+        letter.className = `flying-letter ${animClass}`;
+        letter.style.animationDelay = `${delay}s`;
+        letter.style.zIndex = zIndex;
+
+        letter.innerHTML = `
+            <div class="flying-letter-sticker">${sticker}</div>
+            <div class="flying-letter-to">To. ${recipientName}</div>
+            <div class="flying-letter-preview">${preview}</div>
+        `;
+
+        flyingLettersContent.appendChild(letter);
+    });
+}
+
+// ============================================
+// 이미지 저장 기능
+// ============================================
+
+async function saveAsImage() {
+    const btn = saveImageBtn;
+    btn.classList.add('saving');
+    btn.innerHTML = '<span class="save-icon">⏳</span> 저장 중...';
+
+    try {
+        const canvas = await html2canvas(messageDetailCard, {
+            backgroundColor: null,
+            scale: 2,
+            useCORS: true,
+            logging: false
+        });
+
+        const link = document.createElement('a');
+        const timestamp = new Date().toISOString().slice(0, 10);
+        link.download = `칭찬편지_${timestamp}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+
+        showToast('이미지가 저장되었어요! 📸');
+    } catch (error) {
+        console.error('이미지 저장 실패:', error);
+        showToast('이미지 저장에 실패했어요 😢');
+    } finally {
+        btn.classList.remove('saving');
+        btn.innerHTML = '<span class="save-icon">📥</span> 이미지로 저장하기';
+    }
+}
+
+// ============================================
 // 메시지 저장/불러오기
+// ============================================
+
 function getMessages() {
     const data = localStorage.getItem(STORAGE_KEY);
     return data ? JSON.parse(data) : [];
@@ -108,77 +312,14 @@ function getMessageCountForUser(userId) {
     return getMessagesForUser(userId).length;
 }
 
-// Live Praise Board
-function getRandomPraises() {
-    const messages = getMessages();
-    if (messages.length === 0) {
-        return DEFAULT_PRAISES.map(text => ({ text, isDefault: true }));
-    }
-
-    // 최근 메시지 중 랜덤하게 선택
-    const shuffled = [...messages].sort(() => Math.random() - 0.5);
-    const selected = shuffled.slice(0, Math.min(10, shuffled.length));
-
-    return selected.map(msg => {
-        const recipient = MEMBERS.find(m => m.id === msg.recipientId);
-        const recipientName = recipient ? recipient.name : '익명';
-        const preview = msg.content.length > 30 ? msg.content.slice(0, 30) + '...' : msg.content;
-        return {
-            text: `To. ${recipientName} - "${preview}"`,
-            isDefault: false
-        };
-    });
-}
-
-function updatePraiseBoard() {
-    const praises = getRandomPraises();
-    if (praises.length === 0) return;
-
-    currentPraiseIndex = (currentPraiseIndex + 1) % praises.length;
-    const praise = praises[currentPraiseIndex];
-
-    // 페이드 아웃
-    praiseText.style.opacity = '0';
-    praiseText.style.transform = 'translateY(-10px)';
-
-    setTimeout(() => {
-        praiseText.textContent = praise.text;
-        // 페이드 인
-        praiseText.style.opacity = '1';
-        praiseText.style.transform = 'translateY(0)';
-    }, 300);
-}
-
-function startPraiseRotation() {
-    // 초기 표시
-    const praises = getRandomPraises();
-    if (praises.length > 0) {
-        praiseText.textContent = praises[0].text;
-    }
-
-    // CSS 애니메이션 비활성화하고 JS로 제어
-    praiseText.style.animation = 'none';
-    praiseText.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-    praiseText.style.opacity = '1';
-    praiseText.style.transform = 'translateY(0)';
-
-    // 5초마다 로테이션
-    praiseRotationInterval = setInterval(updatePraiseBoard, 5000);
-}
-
-function stopPraiseRotation() {
-    if (praiseRotationInterval) {
-        clearInterval(praiseRotationInterval);
-        praiseRotationInterval = null;
-    }
-}
-
+// ============================================
 // UI 렌더링
+// ============================================
+
 function renderMailboxGrid() {
     mailboxGrid.innerHTML = '';
 
     MEMBERS.forEach(member => {
-        // 자기 자신은 제외
         if (member.id === currentUserId) return;
 
         const messageCount = getMessageCountForUser(member.id);
@@ -195,35 +336,60 @@ function renderMailboxGrid() {
     });
 }
 
-function renderUserSelect() {
-    currentUserSelect.innerHTML = '';
+function renderWelcomeGrid() {
+    welcomeGrid.innerHTML = '';
 
     MEMBERS.forEach(member => {
-        const option = document.createElement('option');
-        option.value = member.id;
-        option.textContent = `${member.avatar} ${member.name} (나)`;
-        currentUserSelect.appendChild(option);
+        const card = document.createElement('div');
+        card.className = 'welcome-member';
+        card.innerHTML = `
+            <span class="welcome-member-avatar">${member.avatar}</span>
+            <span class="welcome-member-name">${member.name}</span>
+        `;
+        card.addEventListener('click', () => selectCurrentUser(member.id));
+        welcomeGrid.appendChild(card);
     });
+}
 
-    currentUserSelect.value = currentUserId;
+function selectCurrentUser(userId) {
+    currentUserId = userId;
+    localStorage.setItem('currentUserId', userId);
+    welcomeModal.classList.remove('active');
+    updateCurrentUserDisplay();
+    renderMailboxGrid();
+    updateMyMessageCount();
+    showToast('환영합니다! 이제 동기들에게 메시지를 보내보세요 💌');
+}
+
+function updateCurrentUserDisplay() {
+    const member = MEMBERS.find(m => m.id === currentUserId);
+    if (member) {
+        currentUserAvatar.textContent = member.avatar;
+        currentUserName.textContent = member.name;
+    }
+}
+
+function showWelcomeModal() {
+    renderWelcomeGrid();
+    welcomeModal.classList.add('active');
 }
 
 function updateMyMessageCount() {
+    if (!currentUserId) {
+        myMessageCount.textContent = '0';
+        return;
+    }
     const count = getMessageCountForUser(currentUserId);
     myMessageCount.textContent = count;
 }
 
 function updatePaperPreview() {
-    // 기존 paper 클래스 제거
     Object.values(PAPERS).forEach(cls => paperPreview.classList.remove(cls));
-    // 새 paper 클래스 추가
     paperPreview.classList.add(PAPERS[selectedPaper]);
 }
 
 function updateFontPreview() {
-    // 기존 font 클래스 제거
     Object.values(FONTS).forEach(cls => messageContent.classList.remove(cls));
-    // 새 font 클래스 추가
     messageContent.classList.add(FONTS[selectedFont]);
 }
 
@@ -241,7 +407,6 @@ function renderInbox() {
 
         inboxGrid.innerHTML = '';
 
-        // 최신 순으로 정렬
         messages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
         messages.forEach(msg => {
@@ -260,34 +425,32 @@ function renderInbox() {
     }
 }
 
+// ============================================
 // 모달 관련
+// ============================================
+
 function openWriteModal(recipient) {
     selectedRecipientId = recipient.id;
     recipientNameEl.textContent = `${recipient.avatar} ${recipient.name}`;
     messageContent.value = '';
     charCount.textContent = '0';
 
-    // 초기화
     selectedSticker = 'star';
     selectedPaper = 'flower';
     selectedFont = 'default';
 
-    // 템플릿 버튼 초기화
     document.querySelectorAll('.template-btn').forEach(btn => {
         btn.classList.remove('selected');
     });
 
-    // 스티커 버튼 초기화
     document.querySelectorAll('.sticker-btn').forEach(btn => {
         btn.classList.toggle('selected', btn.dataset.sticker === 'star');
     });
 
-    // 편지지 버튼 초기화
     document.querySelectorAll('.paper-btn').forEach(btn => {
         btn.classList.toggle('selected', btn.dataset.paper === 'flower');
     });
 
-    // 폰트 버튼 초기화
     document.querySelectorAll('.font-btn').forEach(btn => {
         btn.classList.toggle('selected', btn.dataset.font === 'default');
     });
@@ -304,6 +467,11 @@ function closeWriteModalFn() {
 }
 
 function openInboxModal() {
+    if (!currentUserId) {
+        showToast('먼저 본인을 선택해주세요! 👆');
+        showWelcomeModal();
+        return;
+    }
     renderInbox();
     inboxModal.classList.add('active');
 }
@@ -327,13 +495,20 @@ function openMessageDetail(msg) {
     `;
 
     messageDetailModal.classList.add('active');
+
+    // 색종이 효과 실행!
+    setTimeout(() => confetti.burst(80), 200);
 }
 
 function closeDetailModalFn() {
     messageDetailModal.classList.remove('active');
+    confetti.stop();
 }
 
+// ============================================
 // 토스트 메시지
+// ============================================
+
 function showToast(message) {
     toast.textContent = message;
     toast.classList.add('show');
@@ -343,7 +518,10 @@ function showToast(message) {
     }, 2500);
 }
 
+// ============================================
 // 메시지 전송
+// ============================================
+
 function sendMessage() {
     const content = messageContent.value.trim();
 
@@ -375,25 +553,23 @@ function sendMessage() {
     renderMailboxGrid();
     updateMyMessageCount();
 
-    // Live Praise Board 즉시 업데이트
-    setTimeout(updatePraiseBoard, 500);
+    // 날아다니는 편지 업데이트
+    renderFlyingLetters();
 
     showToast('익명 메시지가 전송되었어요! 💌');
 }
 
+// ============================================
 // 이벤트 리스너
-currentUserSelect.addEventListener('change', (e) => {
-    currentUserId = e.target.value;
-    renderMailboxGrid();
-    updateMyMessageCount();
-});
+// ============================================
 
+currentUserBtn.addEventListener('click', showWelcomeModal);
 myMailboxBtn.addEventListener('click', openInboxModal);
 closeWriteModal.addEventListener('click', closeWriteModalFn);
 closeInboxModal.addEventListener('click', closeInboxModalFn);
 closeDetailModal.addEventListener('click', closeDetailModalFn);
+saveImageBtn.addEventListener('click', saveAsImage);
 
-// 모달 바깥 클릭 시 닫기
 writeModal.addEventListener('click', (e) => {
     if (e.target === writeModal) closeWriteModalFn();
 });
@@ -406,17 +582,14 @@ messageDetailModal.addEventListener('click', (e) => {
     if (e.target === messageDetailModal) closeDetailModalFn();
 });
 
-// 글자수 카운트
 messageContent.addEventListener('input', (e) => {
     charCount.textContent = e.target.value.length;
 });
 
-// 템플릿 선택
 templateOptions.addEventListener('click', (e) => {
     const btn = e.target.closest('.template-btn');
     if (!btn) return;
 
-    // 직접 입력 버튼 클릭 시
     if (btn.id === 'customTemplateBtn') {
         document.querySelectorAll('.template-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
@@ -435,7 +608,6 @@ templateOptions.addEventListener('click', (e) => {
     }
 });
 
-// 편지지 선택
 paperOptions.addEventListener('click', (e) => {
     const btn = e.target.closest('.paper-btn');
     if (!btn) return;
@@ -446,7 +618,6 @@ paperOptions.addEventListener('click', (e) => {
     updatePaperPreview();
 });
 
-// 폰트 선택
 fontOptions.addEventListener('click', (e) => {
     const btn = e.target.closest('.font-btn');
     if (!btn) return;
@@ -457,7 +628,6 @@ fontOptions.addEventListener('click', (e) => {
     updateFontPreview();
 });
 
-// 스티커 선택
 stickerOptions.addEventListener('click', (e) => {
     const btn = e.target.closest('.sticker-btn');
     if (!btn) return;
@@ -467,26 +637,40 @@ stickerOptions.addEventListener('click', (e) => {
     selectedSticker = btn.dataset.sticker;
 });
 
-// 메시지 전송
 sendMessageBtn.addEventListener('click', sendMessage);
 
-// ESC 키로 모달 닫기
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         closeWriteModalFn();
         closeInboxModalFn();
         closeDetailModalFn();
+        // 환영 모달은 사용자 선택 전에는 Escape로 닫지 않음
+        if (currentUserId) {
+            welcomeModal.classList.remove('active');
+        }
     }
 });
 
+// ============================================
 // 초기화
+// ============================================
+
 function init() {
-    renderUserSelect();
+    confetti.resize();
+
+    // 저장된 사용자가 없으면 환영 모달 표시
+    if (!currentUserId || !MEMBERS.find(m => m.id === currentUserId)) {
+        currentUserId = null;
+        showWelcomeModal();
+    } else {
+        updateCurrentUserDisplay();
+    }
+
     renderMailboxGrid();
     updateMyMessageCount();
     updatePaperPreview();
     updateFontPreview();
-    startPraiseRotation();
+    renderFlyingLetters();
 }
 
 init();
