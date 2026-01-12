@@ -6,7 +6,7 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
     padding: 20px;
@@ -17,10 +17,25 @@ body {
     margin: 0 auto;
 }
 
+/* Font Classes */
+.font-default {
+    font-family: 'Noto Sans KR', sans-serif;
+}
+
+.font-cute {
+    font-family: 'Gaegu', cursive;
+    font-size: 1.2em;
+}
+
+.font-elegant {
+    font-family: 'Nanum Pen Script', cursive;
+    font-size: 1.3em;
+}
+
 /* Header */
 .header {
     text-align: center;
-    padding: 40px 20px;
+    padding: 30px 20px 20px;
     color: white;
 }
 
@@ -33,6 +48,60 @@ body {
 .subtitle {
     font-size: 1.1rem;
     opacity: 0.9;
+}
+
+/* Live Praise Board */
+.live-praise-board {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 20px 30px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+}
+
+.praise-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 30px;
+}
+
+.praise-icon {
+    font-size: 1.5rem;
+    animation: sparkle 2s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+
+.praise-text {
+    font-size: 1.1rem;
+    color: #555;
+    font-weight: 500;
+    animation: fadeInOut 5s ease-in-out infinite;
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; transform: translateY(10px); }
+    10% { opacity: 1; transform: translateY(0); }
+    90% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-10px); }
+}
+
+.praise-text.changing {
+    animation: none;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+}
+
+.praise-text.visible {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 /* My Mailbox Section */
@@ -57,6 +126,7 @@ body {
     cursor: pointer;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     transition: transform 0.2s, box-shadow 0.2s;
+    font-family: inherit;
 }
 
 .my-mailbox-btn:hover {
@@ -85,6 +155,7 @@ body {
     background: white;
     cursor: pointer;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    font-family: inherit;
 }
 
 /* Mailbox Grid */
@@ -158,6 +229,10 @@ body {
     animation: modalSlideIn 0.3s ease;
 }
 
+.modal-write {
+    max-width: 500px;
+}
+
 .modal-large {
     max-width: 700px;
 }
@@ -200,22 +275,132 @@ body {
     padding-right: 30px;
 }
 
+/* Template Options */
+.template-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.template-btn {
+    padding: 8px 14px;
+    font-size: 0.9rem;
+    background: #f5f5f5;
+    border: 2px solid transparent;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    color: #555;
+}
+
+.template-btn:hover {
+    background: #eee;
+    border-color: #ddd;
+}
+
+.template-btn.selected {
+    background: #e8f0fe;
+    border-color: #667eea;
+    color: #667eea;
+}
+
+.template-custom {
+    background: transparent;
+    border: 2px dashed #ccc;
+    color: #888;
+}
+
+.template-custom:hover {
+    border-color: #667eea;
+    color: #667eea;
+}
+
+/* Paper Preview & Styles */
+.paper-preview {
+    border-radius: 15px;
+    padding: 5px;
+    margin-bottom: 5px;
+    transition: all 0.3s ease;
+}
+
+/* Paper Designs */
+.paper-flower {
+    background: linear-gradient(135deg, #ffeef8 0%, #fff5f8 100%);
+    background-image:
+        radial-gradient(circle at 10% 20%, rgba(255, 182, 193, 0.3) 0%, transparent 20%),
+        radial-gradient(circle at 90% 80%, rgba(255, 182, 193, 0.3) 0%, transparent 20%),
+        radial-gradient(circle at 50% 50%, rgba(255, 218, 233, 0.2) 0%, transparent 30%),
+        linear-gradient(135deg, #ffeef8 0%, #fff5f8 100%);
+}
+
+.paper-star {
+    background: linear-gradient(135deg, #f5f0ff 0%, #efe5ff 100%);
+    background-image:
+        radial-gradient(circle at 20% 30%, rgba(186, 154, 255, 0.2) 0%, transparent 15%),
+        radial-gradient(circle at 80% 70%, rgba(186, 154, 255, 0.2) 0%, transparent 15%),
+        radial-gradient(circle at 60% 20%, rgba(186, 154, 255, 0.15) 0%, transparent 10%),
+        radial-gradient(circle at 30% 80%, rgba(186, 154, 255, 0.15) 0%, transparent 10%),
+        linear-gradient(135deg, #f5f0ff 0%, #efe5ff 100%);
+}
+
+.paper-cloud {
+    background: linear-gradient(180deg, #e8f4fc 0%, #f0f8ff 100%);
+    background-image:
+        radial-gradient(ellipse at 20% 80%, rgba(255, 255, 255, 0.8) 0%, transparent 40%),
+        radial-gradient(ellipse at 80% 20%, rgba(255, 255, 255, 0.8) 0%, transparent 40%),
+        radial-gradient(ellipse at 50% 90%, rgba(173, 216, 230, 0.3) 0%, transparent 50%),
+        linear-gradient(180deg, #e8f4fc 0%, #f0f8ff 100%);
+}
+
+.paper-heart {
+    background: linear-gradient(135deg, #fff0f3 0%, #ffe8ec 100%);
+    background-image:
+        radial-gradient(circle at 15% 25%, rgba(255, 105, 135, 0.15) 0%, transparent 20%),
+        radial-gradient(circle at 85% 75%, rgba(255, 105, 135, 0.15) 0%, transparent 20%),
+        radial-gradient(circle at 45% 85%, rgba(255, 105, 135, 0.1) 0%, transparent 15%),
+        radial-gradient(circle at 75% 15%, rgba(255, 105, 135, 0.1) 0%, transparent 15%),
+        linear-gradient(135deg, #fff0f3 0%, #ffe8ec 100%);
+}
+
+.paper-retro {
+    background: linear-gradient(135deg, #fef9e7 0%, #fdf5e6 100%);
+    background-image:
+        repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 28px,
+            rgba(210, 180, 140, 0.2) 28px,
+            rgba(210, 180, 140, 0.2) 29px
+        ),
+        linear-gradient(135deg, #fef9e7 0%, #fdf5e6 100%);
+}
+
+.paper-simple {
+    background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+    border: 2px solid #eee;
+}
+
 /* Message Input */
 .message-input {
     width: 100%;
     height: 120px;
     padding: 15px;
     font-size: 1rem;
-    border: 2px solid #eee;
-    border-radius: 15px;
+    border: none;
+    border-radius: 12px;
     resize: none;
     font-family: inherit;
-    transition: border-color 0.2s;
+    transition: all 0.2s;
+    background: transparent;
 }
 
 .message-input:focus {
     outline: none;
-    border-color: #667eea;
+}
+
+.message-input::placeholder {
+    color: #aaa;
 }
 
 .char-count {
@@ -223,22 +408,91 @@ body {
     font-size: 0.85rem;
     color: #999;
     margin-top: 5px;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
 }
 
 /* Option Sections */
 .option-section {
-    margin-bottom: 20px;
+    margin-bottom: 18px;
 }
 
 .option-label {
     display: block;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 600;
     color: #555;
     margin-bottom: 10px;
 }
 
+/* Paper Options */
+.paper-options {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.paper-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 12px;
+    background: #f5f5f5;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.paper-btn:hover {
+    background: #eee;
+}
+
+.paper-btn.selected {
+    border-color: #667eea;
+    background: #f0f4ff;
+}
+
+.paper-icon {
+    font-size: 1.3rem;
+}
+
+.paper-name {
+    font-size: 0.75rem;
+    color: #666;
+}
+
+/* Font Options */
+.font-options {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.font-btn {
+    padding: 10px 16px;
+    background: #f5f5f5;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.font-btn:hover {
+    background: #eee;
+}
+
+.font-btn.selected {
+    border-color: #667eea;
+    background: #f0f4ff;
+}
+
+.font-preview {
+    font-size: 1rem;
+    color: #333;
+}
+
+/* Sticker Options */
 .sticker-options {
     display: flex;
     gap: 8px;
@@ -265,29 +519,6 @@ body {
     background: #f0f4ff;
 }
 
-.color-options {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.color-btn {
-    width: 40px;
-    height: 40px;
-    border: 3px solid transparent;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.color-btn:hover {
-    transform: scale(1.1);
-}
-
-.color-btn.selected {
-    border-color: #333;
-}
-
 /* Send Button */
 .send-btn {
     width: 100%;
@@ -301,6 +532,7 @@ body {
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
     margin-top: 10px;
+    font-family: inherit;
 }
 
 .send-btn:hover {
@@ -322,7 +554,7 @@ body {
 
 .inbox-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 15px;
 }
 
@@ -332,6 +564,7 @@ body {
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    min-height: 140px;
 }
 
 .inbox-card:hover {
@@ -347,7 +580,7 @@ body {
 .inbox-preview {
     font-size: 0.95rem;
     color: #555;
-    line-height: 1.4;
+    line-height: 1.5;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
@@ -380,8 +613,12 @@ body {
 /* Message Detail */
 .message-detail {
     text-align: center;
-    padding: 20px;
+    padding: 25px;
     border-radius: 15px;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .detail-sticker {
@@ -391,9 +628,10 @@ body {
 
 .detail-content {
     font-size: 1.15rem;
-    line-height: 1.6;
+    line-height: 1.7;
     color: #333;
     margin-bottom: 20px;
+    white-space: pre-wrap;
 }
 
 .detail-date {
@@ -432,6 +670,14 @@ body {
         font-size: 0.95rem;
     }
 
+    .live-praise-board {
+        padding: 15px 20px;
+    }
+
+    .praise-text {
+        font-size: 0.95rem;
+    }
+
     .mailbox-grid {
         grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
         gap: 15px;
@@ -455,5 +701,22 @@ body {
 
     .inbox-grid {
         grid-template-columns: 1fr;
+    }
+
+    .template-options {
+        gap: 6px;
+    }
+
+    .template-btn {
+        padding: 6px 10px;
+        font-size: 0.85rem;
+    }
+
+    .paper-options {
+        gap: 8px;
+    }
+
+    .paper-btn {
+        padding: 8px 10px;
     }
 }

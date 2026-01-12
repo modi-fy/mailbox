@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>익명 칭찬 우체통</title>
+    <!-- Google Fonts - 손글씨 폰트 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -13,6 +17,14 @@
             <h1>익명 칭찬 우체통</h1>
             <p class="subtitle">누가 보냈는지는 모르지만, 누군가 나를 응원하고 있어요</p>
         </header>
+
+        <!-- 전체 공개 칭찬판 (Live Praise Board) -->
+        <div class="live-praise-board" id="livePraiseBoard">
+            <div class="praise-content">
+                <span class="praise-icon">✨</span>
+                <span class="praise-text" id="praiseText">첫 번째 칭찬을 보내보세요!</span>
+            </div>
+        </div>
 
         <!-- 내 우편함 버튼 -->
         <div class="my-mailbox-section">
@@ -34,20 +46,84 @@
 
     <!-- 메시지 작성 모달 -->
     <div id="writeModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content modal-write">
             <button class="modal-close" id="closeWriteModal">&times;</button>
             <h2 class="modal-title">
                 <span id="recipientName"></span>에게 메시지 보내기
             </h2>
 
-            <textarea
-                id="messageContent"
-                class="message-input"
-                placeholder="따뜻한 메시지를 남겨주세요..."
-                maxlength="200"
-            ></textarea>
+            <!-- 칭찬 템플릿 -->
+            <div class="option-section">
+                <label class="option-label">빠른 문구 선택</label>
+                <div class="template-options" id="templateOptions">
+                    <button class="template-btn" data-template="항상 밝은 에너지 고마워요!">밝은 에너지</button>
+                    <button class="template-btn" data-template="발표 정말 잘했어요!">발표 잘했어</button>
+                    <button class="template-btn" data-template="같이 일해서 즐거워요!">같이 일해서</button>
+                    <button class="template-btn" data-template="배려해줘서 감사해요!">배려 감사</button>
+                    <button class="template-btn" data-template="앞으로도 파이팅!">파이팅!</button>
+                    <button class="template-btn template-custom" id="customTemplateBtn">직접 입력</button>
+                </div>
+            </div>
+
+            <!-- 메시지 입력 영역 (편지지 미리보기) -->
+            <div class="paper-preview" id="paperPreview">
+                <textarea
+                    id="messageContent"
+                    class="message-input"
+                    placeholder="따뜻한 메시지를 남겨주세요..."
+                    maxlength="200"
+                ></textarea>
+            </div>
             <div class="char-count"><span id="charCount">0</span>/200</div>
 
+            <!-- 편지지 선택 -->
+            <div class="option-section">
+                <label class="option-label">편지지 선택</label>
+                <div class="paper-options" id="paperOptions">
+                    <button class="paper-btn selected" data-paper="flower" title="꽃무늬">
+                        <span class="paper-icon">🌸</span>
+                        <span class="paper-name">꽃</span>
+                    </button>
+                    <button class="paper-btn" data-paper="star" title="별무늬">
+                        <span class="paper-icon">⭐</span>
+                        <span class="paper-name">별</span>
+                    </button>
+                    <button class="paper-btn" data-paper="cloud" title="구름">
+                        <span class="paper-icon">☁️</span>
+                        <span class="paper-name">구름</span>
+                    </button>
+                    <button class="paper-btn" data-paper="heart" title="하트">
+                        <span class="paper-icon">💕</span>
+                        <span class="paper-name">하트</span>
+                    </button>
+                    <button class="paper-btn" data-paper="retro" title="레트로">
+                        <span class="paper-icon">🎀</span>
+                        <span class="paper-name">레트로</span>
+                    </button>
+                    <button class="paper-btn" data-paper="simple" title="심플">
+                        <span class="paper-icon">📝</span>
+                        <span class="paper-name">심플</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 폰트 선택 -->
+            <div class="option-section">
+                <label class="option-label">폰트 선택</label>
+                <div class="font-options" id="fontOptions">
+                    <button class="font-btn selected" data-font="default">
+                        <span class="font-preview font-default">기본</span>
+                    </button>
+                    <button class="font-btn" data-font="cute">
+                        <span class="font-preview font-cute">귀여운</span>
+                    </button>
+                    <button class="font-btn" data-font="elegant">
+                        <span class="font-preview font-elegant">정갈한</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 스티커 선택 -->
             <div class="option-section">
                 <label class="option-label">스티커 선택</label>
                 <div class="sticker-options" id="stickerOptions">
@@ -57,20 +133,6 @@
                     <button class="sticker-btn" data-sticker="clap">👏</button>
                     <button class="sticker-btn" data-sticker="flower">🌸</button>
                     <button class="sticker-btn" data-sticker="rainbow">🌈</button>
-                    <button class="sticker-btn" data-sticker="fire">🔥</button>
-                    <button class="sticker-btn" data-sticker="rocket">🚀</button>
-                </div>
-            </div>
-
-            <div class="option-section">
-                <label class="option-label">배경 색상</label>
-                <div class="color-options" id="colorOptions">
-                    <button class="color-btn selected" data-color="#FFF9C4" style="background-color: #FFF9C4;"></button>
-                    <button class="color-btn" data-color="#FFCDD2" style="background-color: #FFCDD2;"></button>
-                    <button class="color-btn" data-color="#C8E6C9" style="background-color: #C8E6C9;"></button>
-                    <button class="color-btn" data-color="#BBDEFB" style="background-color: #BBDEFB;"></button>
-                    <button class="color-btn" data-color="#E1BEE7" style="background-color: #E1BEE7;"></button>
-                    <button class="color-btn" data-color="#FFE0B2" style="background-color: #FFE0B2;"></button>
                 </div>
             </div>
 

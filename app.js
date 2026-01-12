@@ -19,16 +19,41 @@ const STICKERS = {
     sparkle: '✨',
     clap: '👏',
     flower: '🌸',
-    rainbow: '🌈',
-    fire: '🔥',
-    rocket: '🚀'
+    rainbow: '🌈'
 };
+
+// 편지지 스타일 매핑
+const PAPERS = {
+    flower: 'paper-flower',
+    star: 'paper-star',
+    cloud: 'paper-cloud',
+    heart: 'paper-heart',
+    retro: 'paper-retro',
+    simple: 'paper-simple'
+};
+
+// 폰트 스타일 매핑
+const FONTS = {
+    default: 'font-default',
+    cute: 'font-cute',
+    elegant: 'font-elegant'
+};
+
+// 기본 칭찬 메시지 (Live Board용)
+const DEFAULT_PRAISES = [
+    '첫 번째 칭찬을 보내보세요!',
+    '따뜻한 한마디가 누군가에게 힘이 됩니다',
+    '오늘도 서로에게 응원을 보내볼까요?'
+];
 
 // 상태 관리
 let currentUserId = MEMBERS[0].id;
 let selectedRecipientId = null;
 let selectedSticker = 'star';
-let selectedColor = '#FFF9C4';
+let selectedPaper = 'flower';
+let selectedFont = 'default';
+let praiseRotationInterval = null;
+let currentPraiseIndex = 0;
 
 // DOM 요소
 const mailboxGrid = document.getElementById('mailboxGrid');
@@ -41,9 +66,13 @@ const closeWriteModal = document.getElementById('closeWriteModal');
 const recipientNameEl = document.getElementById('recipientName');
 const messageContent = document.getElementById('messageContent');
 const charCount = document.getElementById('charCount');
+const templateOptions = document.getElementById('templateOptions');
+const paperOptions = document.getElementById('paperOptions');
+const paperPreview = document.getElementById('paperPreview');
+const fontOptions = document.getElementById('fontOptions');
 const stickerOptions = document.getElementById('stickerOptions');
-const colorOptions = document.getElementById('colorOptions');
 const sendMessageBtn = document.getElementById('sendMessageBtn');
+const customTemplateBtn = document.getElementById('customTemplateBtn');
 
 const inboxModal = document.getElementById('inboxModal');
 const closeInboxModal = document.getElementById('closeInboxModal');
@@ -55,6 +84,7 @@ const messageDetailModal = document.getElementById('messageDetailModal');
 const closeDetailModal = document.getElementById('closeDetailModal');
 const messageDetail = document.getElementById('messageDetail');
 
+const praiseText = document.getElementById('praiseText');
 const toast = document.getElementById('toast');
 
 // LocalStorage 키
@@ -76,6 +106,71 @@ function getMessagesForUser(userId) {
 
 function getMessageCountForUser(userId) {
     return getMessagesForUser(userId).length;
+}
+
+// Live Praise Board
+function getRandomPraises() {
+    const messages = getMessages();
+    if (messages.length === 0) {
+        return DEFAULT_PRAISES.map(text => ({ text, isDefault: true }));
+    }
+
+    // 최근 메시지 중 랜덤하게 선택
+    const shuffled = [...messages].sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, Math.min(10, shuffled.length));
+
+    return selected.map(msg => {
+        const recipient = MEMBERS.find(m => m.id === msg.recipientId);
+        const recipientName = recipient ? recipient.name : '익명';
+        const preview = msg.content.length > 30 ? msg.content.slice(0, 30) + '...' : msg.content;
+        return {
+            text: `To. ${recipientName} - "${preview}"`,
+            isDefault: false
+        };
+    });
+}
+
+function updatePraiseBoard() {
+    const praises = getRandomPraises();
+    if (praises.length === 0) return;
+
+    currentPraiseIndex = (currentPraiseIndex + 1) % praises.length;
+    const praise = praises[currentPraiseIndex];
+
+    // 페이드 아웃
+    praiseText.style.opacity = '0';
+    praiseText.style.transform = 'translateY(-10px)';
+
+    setTimeout(() => {
+        praiseText.textContent = praise.text;
+        // 페이드 인
+        praiseText.style.opacity = '1';
+        praiseText.style.transform = 'translateY(0)';
+    }, 300);
+}
+
+function startPraiseRotation() {
+    // 초기 표시
+    const praises = getRandomPraises();
+    if (praises.length > 0) {
+        praiseText.textContent = praises[0].text;
+    }
+
+    // CSS 애니메이션 비활성화하고 JS로 제어
+    praiseText.style.animation = 'none';
+    praiseText.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+    praiseText.style.opacity = '1';
+    praiseText.style.transform = 'translateY(0)';
+
+    // 5초마다 로테이션
+    praiseRotationInterval = setInterval(updatePraiseBoard, 5000);
+}
+
+function stopPraiseRotation() {
+    if (praiseRotationInterval) {
+        clearInterval(praiseRotationInterval);
+        praiseRotationInterval = null;
+    }
 }
 
 // UI 렌더링
@@ -118,6 +213,20 @@ function updateMyMessageCount() {
     myMessageCount.textContent = count;
 }
 
+function updatePaperPreview() {
+    // 기존 paper 클래스 제거
+    Object.values(PAPERS).forEach(cls => paperPreview.classList.remove(cls));
+    // 새 paper 클래스 추가
+    paperPreview.classList.add(PAPERS[selectedPaper]);
+}
+
+function updateFontPreview() {
+    // 기존 font 클래스 제거
+    Object.values(FONTS).forEach(cls => messageContent.classList.remove(cls));
+    // 새 font 클래스 추가
+    messageContent.classList.add(FONTS[selectedFont]);
+}
+
 function renderInbox() {
     const messages = getMessagesForUser(currentUserId);
 
@@ -137,11 +246,13 @@ function renderInbox() {
 
         messages.forEach(msg => {
             const card = document.createElement('div');
-            card.className = 'inbox-card';
-            card.style.backgroundColor = msg.backgroundColor;
+            card.className = `inbox-card ${PAPERS[msg.paper] || 'paper-flower'}`;
+
+            const fontClass = FONTS[msg.font] || 'font-default';
+
             card.innerHTML = `
-                <div class="inbox-sticker">${STICKERS[msg.sticker]}</div>
-                <div class="inbox-preview">${msg.content}</div>
+                <div class="inbox-sticker">${STICKERS[msg.sticker] || '⭐'}</div>
+                <div class="inbox-preview ${fontClass}">${msg.content}</div>
             `;
             card.addEventListener('click', () => openMessageDetail(msg));
             inboxGrid.appendChild(card);
@@ -156,17 +267,33 @@ function openWriteModal(recipient) {
     messageContent.value = '';
     charCount.textContent = '0';
 
-    // 스티커/색상 초기화
+    // 초기화
     selectedSticker = 'star';
-    selectedColor = '#FFF9C4';
+    selectedPaper = 'flower';
+    selectedFont = 'default';
 
+    // 템플릿 버튼 초기화
+    document.querySelectorAll('.template-btn').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+
+    // 스티커 버튼 초기화
     document.querySelectorAll('.sticker-btn').forEach(btn => {
         btn.classList.toggle('selected', btn.dataset.sticker === 'star');
     });
 
-    document.querySelectorAll('.color-btn').forEach(btn => {
-        btn.classList.toggle('selected', btn.dataset.color === '#FFF9C4');
+    // 편지지 버튼 초기화
+    document.querySelectorAll('.paper-btn').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.paper === 'flower');
     });
+
+    // 폰트 버튼 초기화
+    document.querySelectorAll('.font-btn').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.font === 'default');
+    });
+
+    updatePaperPreview();
+    updateFontPreview();
 
     writeModal.classList.add('active');
 }
@@ -189,10 +316,13 @@ function openMessageDetail(msg) {
     const date = new Date(msg.createdAt);
     const dateStr = `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
 
-    messageDetail.style.backgroundColor = msg.backgroundColor;
+    const paperClass = PAPERS[msg.paper] || 'paper-flower';
+    const fontClass = FONTS[msg.font] || 'font-default';
+
+    messageDetail.className = `message-detail ${paperClass}`;
     messageDetail.innerHTML = `
-        <div class="detail-sticker">${STICKERS[msg.sticker]}</div>
-        <div class="detail-content">${msg.content}</div>
+        <div class="detail-sticker">${STICKERS[msg.sticker] || '⭐'}</div>
+        <div class="detail-content ${fontClass}">${msg.content}</div>
         <div class="detail-date">${dateStr}</div>
     `;
 
@@ -232,7 +362,8 @@ function sendMessage() {
         recipientId: selectedRecipientId,
         content: content,
         sticker: selectedSticker,
-        backgroundColor: selectedColor,
+        paper: selectedPaper,
+        font: selectedFont,
         createdAt: new Date().toISOString()
     };
 
@@ -244,7 +375,10 @@ function sendMessage() {
     renderMailboxGrid();
     updateMyMessageCount();
 
-    showToast('익명 메시지가 전송되었어요!');
+    // Live Praise Board 즉시 업데이트
+    setTimeout(updatePraiseBoard, 500);
+
+    showToast('익명 메시지가 전송되었어요! 💌');
 }
 
 // 이벤트 리스너
@@ -277,6 +411,52 @@ messageContent.addEventListener('input', (e) => {
     charCount.textContent = e.target.value.length;
 });
 
+// 템플릿 선택
+templateOptions.addEventListener('click', (e) => {
+    const btn = e.target.closest('.template-btn');
+    if (!btn) return;
+
+    // 직접 입력 버튼 클릭 시
+    if (btn.id === 'customTemplateBtn') {
+        document.querySelectorAll('.template-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        messageContent.value = '';
+        messageContent.focus();
+        charCount.textContent = '0';
+        return;
+    }
+
+    const template = btn.dataset.template;
+    if (template) {
+        document.querySelectorAll('.template-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        messageContent.value = template;
+        charCount.textContent = template.length;
+    }
+});
+
+// 편지지 선택
+paperOptions.addEventListener('click', (e) => {
+    const btn = e.target.closest('.paper-btn');
+    if (!btn) return;
+
+    document.querySelectorAll('.paper-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedPaper = btn.dataset.paper;
+    updatePaperPreview();
+});
+
+// 폰트 선택
+fontOptions.addEventListener('click', (e) => {
+    const btn = e.target.closest('.font-btn');
+    if (!btn) return;
+
+    document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedFont = btn.dataset.font;
+    updateFontPreview();
+});
+
 // 스티커 선택
 stickerOptions.addEventListener('click', (e) => {
     const btn = e.target.closest('.sticker-btn');
@@ -285,16 +465,6 @@ stickerOptions.addEventListener('click', (e) => {
     document.querySelectorAll('.sticker-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
     selectedSticker = btn.dataset.sticker;
-});
-
-// 색상 선택
-colorOptions.addEventListener('click', (e) => {
-    const btn = e.target.closest('.color-btn');
-    if (!btn) return;
-
-    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected');
-    selectedColor = btn.dataset.color;
 });
 
 // 메시지 전송
@@ -314,6 +484,9 @@ function init() {
     renderUserSelect();
     renderMailboxGrid();
     updateMyMessageCount();
+    updatePaperPreview();
+    updateFontPreview();
+    startPraiseRotation();
 }
 
 init();
