@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>익명 칭찬 우체통</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 헤더 -->
+        <header class="header">
+            <h1>익명 칭찬 우체통</h1>
+            <p class="subtitle">누가 보냈는지는 모르지만, 누군가 나를 응원하고 있어요</p>
+        </header>
+
+        <!-- 내 우편함 버튼 -->
+        <div class="my-mailbox-section">
+            <button id="myMailboxBtn" class="my-mailbox-btn">
+                <span class="mailbox-icon">📬</span>
+                <span>내 우편함</span>
+                <span id="myMessageCount" class="message-count">0</span>
+            </button>
+            <select id="currentUser" class="user-select">
+                <!-- JavaScript에서 동적으로 추가 -->
+            </select>
+        </div>
+
+        <!-- 우편함 리스트 -->
+        <main class="mailbox-grid" id="mailboxGrid">
+            <!-- JavaScript에서 동적으로 추가 -->
+        </main>
+    </div>
+
+    <!-- 메시지 작성 모달 -->
+    <div id="writeModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeWriteModal">&times;</button>
+            <h2 class="modal-title">
+                <span id="recipientName"></span>에게 메시지 보내기
+            </h2>
+
+            <textarea
+                id="messageContent"
+                class="message-input"
+                placeholder="따뜻한 메시지를 남겨주세요..."
+                maxlength="200"
+            ></textarea>
+            <div class="char-count"><span id="charCount">0</span>/200</div>
+
+            <div class="option-section">
+                <label class="option-label">스티커 선택</label>
+                <div class="sticker-options" id="stickerOptions">
+                    <button class="sticker-btn selected" data-sticker="star">⭐</button>
+                    <button class="sticker-btn" data-sticker="heart">💖</button>
+                    <button class="sticker-btn" data-sticker="sparkle">✨</button>
+                    <button class="sticker-btn" data-sticker="clap">👏</button>
+                    <button class="sticker-btn" data-sticker="flower">🌸</button>
+                    <button class="sticker-btn" data-sticker="rainbow">🌈</button>
+                    <button class="sticker-btn" data-sticker="fire">🔥</button>
+                    <button class="sticker-btn" data-sticker="rocket">🚀</button>
+                </div>
+            </div>
+
+            <div class="option-section">
+                <label class="option-label">배경 색상</label>
+                <div class="color-options" id="colorOptions">
+                    <button class="color-btn selected" data-color="#FFF9C4" style="background-color: #FFF9C4;"></button>
+                    <button class="color-btn" data-color="#FFCDD2" style="background-color: #FFCDD2;"></button>
+                    <button class="color-btn" data-color="#C8E6C9" style="background-color: #C8E6C9;"></button>
+                    <button class="color-btn" data-color="#BBDEFB" style="background-color: #BBDEFB;"></button>
+                    <button class="color-btn" data-color="#E1BEE7" style="background-color: #E1BEE7;"></button>
+                    <button class="color-btn" data-color="#FFE0B2" style="background-color: #FFE0B2;"></button>
+                </div>
+            </div>
+
+            <button id="sendMessageBtn" class="send-btn">익명으로 보내기</button>
+        </div>
+    </div>
+
+    <!-- 내 우편함 모달 -->
+    <div id="inboxModal" class="modal">
+        <div class="modal-content modal-large">
+            <button class="modal-close" id="closeInboxModal">&times;</button>
+            <h2 class="modal-title">📬 내 우편함</h2>
+            <p id="inboxSubtitle" class="inbox-subtitle"></p>
+
+            <div id="inboxGrid" class="inbox-grid">
+                <!-- JavaScript에서 동적으로 추가 -->
+            </div>
+
+            <div id="emptyInbox" class="empty-inbox" style="display: none;">
+                <span class="empty-icon">📭</span>
+                <p>아직 받은 메시지가 없어요</p>
+                <p class="empty-hint">조금만 기다려보세요!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 메시지 상세 모달 -->
+    <div id="messageDetailModal" class="modal">
+        <div class="modal-content modal-small">
+            <button class="modal-close" id="closeDetailModal">&times;</button>
+            <div id="messageDetail" class="message-detail">
+                <!-- JavaScript에서 동적으로 추가 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 토스트 메시지 -->
+    <div id="toast" class="toast"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
