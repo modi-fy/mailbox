@@ -1,3 +1,8 @@
+// Supabase 설정
+const SUPABASE_URL = 'https://xrfespmblgohrqosjiyn.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_8z8Mgex0plRqWJQ9UROMDg_RAM8-mdy';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 // 가상의 멤버 데이터 (10명)
 const MEMBERS = [
     { id: 'member_1', name: '김민수', avatar: '🐻' },
@@ -93,9 +98,6 @@ const confettiCtx = confettiCanvas.getContext('2d');
 
 const flyingLettersContent = document.getElementById('flyingLettersContent');
 const toast = document.getElementById('toast');
-
-// LocalStorage 키
-const STORAGE_KEY = 'anonymous_mailbox_messages';
 
 // ============================================
 // 색종이 효과 (Confetti)
@@ -210,8 +212,8 @@ window.addEventListener('resize', () => confetti.resize());
 // 날아다니는 편지 (Flying Letters)
 // ============================================
 
-function renderFlyingLetters() {
-    const messages = getMessages();
+async function renderFlyingLetters() {
+    const messages = await getMessages();
     flyingLettersContent.innerHTML = '';
 
     if (messages.length === 0) {
@@ -292,37 +294,97 @@ async function saveAsImage() {
 }
 
 // ============================================
-// 메시지 저장/불러오기
+// 메시지 저장/불러오기 (Supabase)
 // ============================================
 
-function getMessages() {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
+async function getMessages() {
+    const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('메시지 조회 실패:', error);
+        return [];
+    }
+
+    // DB 컬럼명을 기존 코드와 호환되도록 변환
+    return data.map(msg => ({
+        id: msg.id,
+        recipientId: msg.recipient_id,
+        content: msg.content,
+        sticker: msg.sticker,
+        paper: msg.paper,
+        font: msg.font,
+        createdAt: msg.created_at
+    }));
 }
 
-function saveMessages(messages) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+async function saveMessage(message) {
+    const { error } = await supabase
+        .from('messages')
+        .insert({
+            recipient_id: message.recipientId,
+            content: message.content,
+            sticker: message.sticker,
+            paper: message.paper,
+            font: message.font
+        });
+
+    if (error) {
+        console.error('메시지 저장 실패:', error);
+        return false;
+    }
+    return true;
 }
 
-function getMessagesForUser(userId) {
-    return getMessages().filter(msg => msg.recipientId === userId);
+async function getMessagesForUser(userId) {
+    const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('recipient_id', userId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('메시지 조회 실패:', error);
+        return [];
+    }
+
+    return data.map(msg => ({
+        id: msg.id,
+        recipientId: msg.recipient_id,
+        content: msg.content,
+        sticker: msg.sticker,
+        paper: msg.paper,
+        font: msg.font,
+        createdAt: msg.created_at
+    }));
 }
 
-function getMessageCountForUser(userId) {
-    return getMessagesForUser(userId).length;
+async function getMessageCountForUser(userId) {
+    const { count, error } = await supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('recipient_id', userId);
+
+    if (error) {
+        console.error('메시지 카운트 실패:', error);
+        return 0;
+    }
+    return count || 0;
 }
 
 // ============================================
 // UI 렌더링
 // ============================================
 
-function renderMailboxGrid() {
+async function renderMailboxGrid() {
     mailboxGrid.innerHTML = '';
 
-    MEMBERS.forEach(member => {
-        if (member.id === currentUserId) return;
+    for (const member of MEMBERS) {
+        if (member.id === currentUserId) continue;
 
-        const messageCount = getMessageCountForUser(member.id);
+        const messageCount = await getMessageCountForUser(member.id);
 
         const card = document.createElement('div');
         card.className = 'mailbox-card';
@@ -333,7 +395,7 @@ function renderMailboxGrid() {
         `;
         card.addEventListener('click', () => openWriteModal(member));
         mailboxGrid.appendChild(card);
-    });
+    }
 }
 
 function renderWelcomeGrid() {
@@ -351,13 +413,13 @@ function renderWelcomeGrid() {
     });
 }
 
-function selectCurrentUser(userId) {
+async function selectCurrentUser(userId) {
     currentUserId = userId;
     localStorage.setItem('currentUserId', userId);
     welcomeModal.classList.remove('active');
     updateCurrentUserDisplay();
-    renderMailboxGrid();
-    updateMyMessageCount();
+    await renderMailboxGrid();
+    await updateMyMessageCount();
     showToast('환영합니다! 이제 동기들에게 메시지를 보내보세요 💌');
 }
 
@@ -374,12 +436,12 @@ function showWelcomeModal() {
     welcomeModal.classList.add('active');
 }
 
-function updateMyMessageCount() {
+async function updateMyMessageCount() {
     if (!currentUserId) {
         myMessageCount.textContent = '0';
         return;
     }
-    const count = getMessageCountForUser(currentUserId);
+    const count = await getMessageCountForUser(currentUserId);
     myMessageCount.textContent = count;
 }
 
@@ -393,8 +455,8 @@ function updateFontPreview() {
     messageContent.classList.add(FONTS[selectedFont]);
 }
 
-function renderInbox() {
-    const messages = getMessagesForUser(currentUserId);
+async function renderInbox() {
+    const messages = await getMessagesForUser(currentUserId);
 
     if (messages.length === 0) {
         inboxGrid.style.display = 'none';
@@ -406,8 +468,6 @@ function renderInbox() {
         inboxSubtitle.textContent = `${messages.length}통의 편지가 도착했어요!`;
 
         inboxGrid.innerHTML = '';
-
-        messages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
         messages.forEach(msg => {
             const card = document.createElement('div');
@@ -466,13 +526,13 @@ function closeWriteModalFn() {
     selectedRecipientId = null;
 }
 
-function openInboxModal() {
+async function openInboxModal() {
     if (!currentUserId) {
         showToast('먼저 본인을 선택해주세요! 👆');
         showWelcomeModal();
         return;
     }
-    renderInbox();
+    await renderInbox();
     inboxModal.classList.add('active');
 }
 
@@ -522,7 +582,7 @@ function showToast(message) {
 // 메시지 전송
 // ============================================
 
-function sendMessage() {
+async function sendMessage() {
     const content = messageContent.value.trim();
 
     if (!content) {
@@ -536,25 +596,26 @@ function sendMessage() {
     }
 
     const newMessage = {
-        id: `msg_${Date.now()}`,
         recipientId: selectedRecipientId,
         content: content,
         sticker: selectedSticker,
         paper: selectedPaper,
-        font: selectedFont,
-        createdAt: new Date().toISOString()
+        font: selectedFont
     };
 
-    const messages = getMessages();
-    messages.push(newMessage);
-    saveMessages(messages);
+    const success = await saveMessage(newMessage);
+
+    if (!success) {
+        showToast('메시지 전송에 실패했어요 😢');
+        return;
+    }
 
     closeWriteModalFn();
-    renderMailboxGrid();
-    updateMyMessageCount();
+    await renderMailboxGrid();
+    await updateMyMessageCount();
 
     // 날아다니는 편지 업데이트
-    renderFlyingLetters();
+    await renderFlyingLetters();
 
     showToast('익명 메시지가 전송되었어요! 💌');
 }
@@ -655,7 +716,7 @@ document.addEventListener('keydown', (e) => {
 // 초기화
 // ============================================
 
-function init() {
+async function init() {
     confetti.resize();
 
     // 저장된 사용자가 없으면 환영 모달 표시
@@ -666,11 +727,11 @@ function init() {
         updateCurrentUserDisplay();
     }
 
-    renderMailboxGrid();
-    updateMyMessageCount();
+    await renderMailboxGrid();
+    await updateMyMessageCount();
     updatePaperPreview();
     updateFontPreview();
-    renderFlyingLetters();
+    await renderFlyingLetters();
 }
 
 init();
