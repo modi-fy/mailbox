@@ -1,7 +1,7 @@
 // Supabase 설정
 const SUPABASE_URL = 'https://xrfespmblgohrqosjiyn.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_8z8Mgex0plRqWJQ9UROMDg_RAM8-mdy';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // 가상의 멤버 데이터 (10명)
 const MEMBERS = [
@@ -298,7 +298,7 @@ async function saveAsImage() {
 // ============================================
 
 async function getMessages() {
-    const { data, error } = await supabase
+    const { data, error } = await db
         .from('messages')
         .select('*')
         .order('created_at', { ascending: false });
@@ -321,7 +321,7 @@ async function getMessages() {
 }
 
 async function saveMessage(message) {
-    const { error } = await supabase
+    const { error } = await db
         .from('messages')
         .insert({
             recipient_id: message.recipientId,
@@ -339,7 +339,7 @@ async function saveMessage(message) {
 }
 
 async function getMessagesForUser(userId) {
-    const { data, error } = await supabase
+    const { data, error } = await db
         .from('messages')
         .select('*')
         .eq('recipient_id', userId)
@@ -362,7 +362,7 @@ async function getMessagesForUser(userId) {
 }
 
 async function getMessageCountForUser(userId) {
-    const { count, error } = await supabase
+    const { count, error } = await db
         .from('messages')
         .select('*', { count: 'exact', head: true })
         .eq('recipient_id', userId);
